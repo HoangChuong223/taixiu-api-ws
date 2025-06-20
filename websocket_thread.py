@@ -1,6 +1,6 @@
 import websocket, json, time, ssl, requests
 
-API_URL = "https://your-railway-project.up.railway.app/api/taixiu"
+API_URL = "https://taixiu-api-ws.onrender.com/api/taixiu"
 id_phien = None
 
 def on_message(ws, message):
