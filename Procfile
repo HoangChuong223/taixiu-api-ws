@@ -1,3 +1,1 @@
-flask
-requests
-websocket-client
+web: python app.py
