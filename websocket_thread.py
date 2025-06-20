@@ -17,7 +17,6 @@ messages_to_send = [
     [6, "MiniGame", "taixiuUnbalancedPlugin", {"cmd": 2000}],
 ]
 
-# === HÀM XỬ LÝ TIN NHẮN ===
 def on_message(ws, message):
     global id_phien
 
@@ -31,14 +30,12 @@ def on_message(ws, message):
         payload = data[1]
         cmd = payload.get("cmd")
 
-        # === NHẬN SESSION ID ===
         if cmd == 2007:
             sid = payload.get("sid")
             if sid and sid != id_phien:
                 id_phien = sid
                 print(f"🎮 Phiên mới: {id_phien}")
 
-        # === NHẬN KẾT QUẢ PHIÊN ===
         elif cmd == 1003 or ("d1" in payload and "d2" in payload and "d3" in payload):
             d1 = payload.get("d1")
             d2 = payload.get("d2")
@@ -49,7 +46,6 @@ def on_message(ws, message):
                 outcome = "Tài" if total > 10 else "Xỉu"
                 print(f"🎲 {d1}, {d2}, {d3} → Tổng: {total} → Kết quả: {outcome}")
 
-                # === GỬI KẾT QUẢ VỀ API ===
                 try:
                     requests.post(API_URL, json={
                         "Phien": id_phien,
@@ -64,25 +60,23 @@ def on_message(ws, message):
                 except Exception as e:
                     print("❌ Gửi API lỗi:", e)
 
-# === CALLBACKS ===
 def on_error(ws, error):
-    print(f"❌ Lỗi: {error}")
+    print(f"❌ Lỗi WebSocket: {error}")
 
 def on_close(ws, close_status_code, close_msg):
-    print(f"🔌 Đã đóng kết nối: {close_status_code} - {close_msg}")
+    print(f"🔌 Đã ngắt kết nối: {close_status_code} - {close_msg}")
 
 def on_open(ws):
-    print("✅ Đã kết nối WebSocket")
+    print("✅ WebSocket kết nối thành công")
     for msg in messages_to_send:
         ws.send(json.dumps(msg))
         time.sleep(1)
 
-# === HÀM KẾT NỐI WEBSOCKET ===
 def run_websocket():
     header = [
         "Host: websocket.atpman.net",
-        "Origin: https://789club.sx", 
-        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+        "Origin: https://789club.sx",
+        "User-Agent: Mozilla/5.0"
     ]
 
     while True:
@@ -97,9 +91,5 @@ def run_websocket():
             )
             ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            print(f"🔁 Mất kết nối: {e}. Thử lại sau 5 giây...")
+            print(f"🔁 Mất kết nối WebSocket: {e}")
             time.sleep(5)
-
-# === CHẠY ===
-if __name__ == "__main__":
-    run_websocket()
