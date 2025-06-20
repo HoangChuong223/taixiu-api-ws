@@ -4,12 +4,14 @@ from websocket_thread import run_websocket
 
 app = Flask(__name__)
 
-# Route chính để kiểm tra
 @app.route('/', methods=['GET'])
 def home():
     return "✅ API Tài/Xỉu đang hoạt động"
 
-# Nhận kết quả tài/xỉu từ WebSocket
+@app.route('/api/taixiu', methods=['GET'])
+def test_api():
+    return "✅ Đây là API nhận dữ liệu Tài/Xỉu. Gửi POST để sử dụng."
+
 @app.route('/api/taixiu', methods=['POST'])
 def nhan_ket_qua():
     data = request.get_json()
