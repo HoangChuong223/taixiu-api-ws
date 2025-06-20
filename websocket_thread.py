@@ -1,62 +1,105 @@
-import websocket, json, time, ssl, requests
+import websocket
+import json
+import time
+import ssl
+import requests
 
-API_URL = "https://taixiu-api-ws.onrender.com/api/taixiu"
+# === BIẾN TOÀN CỤC ===
 id_phien = None
+API_URL = "https://taixiu-api-ws.onrender.com/api/taixiu"
 
+# === DANH SÁCH TIN NHẮN GỬI ===
+messages_to_send = [
+    [1, "MiniGame", "saoban", "ere2234", {
+        "info": "{\"ipAddress\":\"125.235.239.187\",\"userId\":\"2ef4335a-6562-4c64-b012-46ef83a25800\",\"username\":\"S8_saoban\",\"timestamp\":1749643344994,\"refreshToken\":\"e790adfa529e42639552261c7a7d206b.51b6327dccb94fe1b4a96040d5ded732\"}",
+        "signature": "20399D67A1EC9E78B287200DE26F206FFEBB01C545C52EDAC0F0C347CF26A7900FB5AD74BC2DC9A35634C0E9F45BF799B3D8696052D5392CFB9BE0F4CF086BE8F50699C542C7693722B4EE68ECDCF72EB887B91A46FC662087E233EE7C10FED14505920B6687F5B9E30B4FF6EACBF1305FDB9A5DC4ED010DBA3C3AB3DAE5AC14"
+    }],
+    [6, "MiniGame", "taixiuUnbalancedPlugin", {"cmd": 2000}],
+]
+
+# === HÀM XỬ LÝ TIN NHẮN ===
 def on_message(ws, message):
     global id_phien
+
     try:
         data = json.loads(message)
-    except:
+    except json.JSONDecodeError:
+        print("❌ Không thể parse JSON")
         return
 
     if isinstance(data, list) and len(data) >= 2 and isinstance(data[1], dict):
         payload = data[1]
         cmd = payload.get("cmd")
+
+        # === NHẬN SESSION ID ===
         if cmd == 2007:
-            id_phien = payload.get("sid")
+            sid = payload.get("sid")
+            if sid and sid != id_phien:
+                id_phien = sid
+                print(f"🎮 Phiên mới: {id_phien}")
 
-        elif "d1" in payload and "d2" in payload and "d3" in payload:
-            d1, d2, d3 = payload["d1"], payload["d2"], payload["d3"]
-            tong = d1 + d2 + d3
-            ket_qua = "Tài" if tong > 10 else "Xỉu"
+        # === NHẬN KẾT QUẢ PHIÊN ===
+        elif cmd == 1003 or ("d1" in payload and "d2" in payload and "d3" in payload):
+            d1 = payload.get("d1")
+            d2 = payload.get("d2")
+            d3 = payload.get("d3")
 
-            print(f"🎲 {d1},{d2},{d3} = {tong} → {ket_qua}")
+            if d1 is not None and d2 is not None and d3 is not None:
+                total = d1 + d2 + d3
+                outcome = "Tài" if total > 10 else "Xỉu"
+                print(f"🎲 {d1}, {d2}, {d3} → Tổng: {total} → Kết quả: {outcome}")
 
-            try:
-                requests.post(API_URL, json={
-                    "Ket_qua": ket_qua,
-                    "Phien": id_phien,
-                    "Tong": tong,
-                    "Xuc_xac_1": d1,
-                    "Xuc_xac_2": d2,
-                    "Xuc_xac_3": d3,
-                    "id": "Wanglin"
-                })
-            except Exception as e:
-                print("❌ Gửi API lỗi:", e)
+                # === GỬI KẾT QUẢ VỀ API ===
+                try:
+                    requests.post(API_URL, json={
+                        "Phien": id_phien,
+                        "Tong": total,
+                        "Ket_qua": outcome,
+                        "Xuc_xac_1": d1,
+                        "Xuc_xac_2": d2,
+                        "Xuc_xac_3": d3,
+                        "id": "Wanglin"
+                    })
+                    print("✅ Đã gửi kết quả về API")
+                except Exception as e:
+                    print("❌ Gửi API lỗi:", e)
+
+# === CALLBACKS ===
+def on_error(ws, error):
+    print(f"❌ Lỗi: {error}")
+
+def on_close(ws, close_status_code, close_msg):
+    print(f"🔌 Đã đóng kết nối: {close_status_code} - {close_msg}")
 
 def on_open(ws):
-    print("✅ Kết nối WebSocket")
-    # gửi lệnh khởi tạo
-    ws.send(json.dumps([
-        1, "MiniGame", "saoban", "ere2234", {
-            "info": "{\"ipAddress\":\"125.235.239.187\",\"userId\":\"2ef4335a-6562-4c64-b012-46ef83a25800\",\"username\":\"S8_saoban\",\"timestamp\":1749643344994,\"refreshToken\":\"...\"}",
-            "signature": "20399D..."
-        }
-    ]))
-    time.sleep(1)
-    ws.send(json.dumps([6, "MiniGame", "taixiuUnbalancedPlugin", {"cmd": 2000}]))
+    print("✅ Đã kết nối WebSocket")
+    for msg in messages_to_send:
+        ws.send(json.dumps(msg))
+        time.sleep(1)
 
-def start_websocket():
+# === HÀM KẾT NỐI WEBSOCKET ===
+def run_websocket():
+    header = [
+        "Host: websocket.atpman.net",
+        "Origin: https://789club.sx", 
+        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    ]
+
     while True:
         try:
             ws = websocket.WebSocketApp(
                 "wss://websocket.atpman.net/websocket",
+                on_message=on_message,
+                on_error=on_error,
+                on_close=on_close,
                 on_open=on_open,
-                on_message=on_message
+                header=header
             )
-            ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+            ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            print("🔁 WebSocket lỗi:", e)
+            print(f"🔁 Mất kết nối: {e}. Thử lại sau 5 giây...")
             time.sleep(5)
+
+# === CHẠY ===
+if __name__ == "__main__":
+    run_websocket()
