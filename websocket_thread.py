@@ -4,9 +4,10 @@ import time
 import ssl
 import requests
 
+API_URL = "https://taixiu-api-ws-3.onrender.com/api/taixiu"
 id_phien = None
-API_URL = "https://taixiu-api-ws.onrender.com/api/taixiu"
 
+# Gói tin WebSocket
 messages_to_send = [
     [1, "MiniGame", "saoban", "ere2234", {
         "info": "{\"ipAddress\":\"125.235.239.187\",\"userId\":\"2ef4335a-6562-4c64-b012-46ef83a25800\",\"username\":\"S8_saoban\",\"timestamp\":1749643344994,\"refreshToken\":\"e790adfa529e42639552261c7a7d206b.51b6327dccb94fe1b4a96040d5ded732\"}",
@@ -17,11 +18,10 @@ messages_to_send = [
 
 def on_message(ws, message):
     global id_phien
-
     try:
         data = json.loads(message)
     except json.JSONDecodeError:
-        print("❌ Không thể parse JSON")
+        print("❌ JSON lỗi")
         return
 
     if isinstance(data, list) and len(data) >= 2 and isinstance(data[1], dict):
@@ -39,36 +39,36 @@ def on_message(ws, message):
             d2 = payload.get("d2")
             d3 = payload.get("d3")
 
-            if d1 is not None and d2 is not None and d3 is not None:
-                total = d1 + d2 + d3
-                outcome = "Tài" if total > 10 else "Xỉu"
-                print(f"🎲 {d1}, {d2}, {d3} → Tổng: {total} → Kết quả: {outcome}")
+            if all(v is not None for v in [d1, d2, d3]):
+                tong = d1 + d2 + d3
+                ket_qua = "Tài" if tong > 10 else "Xỉu"
+                print(f"🎲 {d1}, {d2}, {d3} → Tổng: {tong} → Kết quả: {ket_qua}")
 
                 try:
                     requests.post(API_URL, json={
                         "Phien": id_phien,
-                        "Tong": total,
-                        "Ket_qua": outcome,
+                        "Tong": tong,
+                        "Ket_qua": ket_qua,
                         "Xuc_xac_1": d1,
                         "Xuc_xac_2": d2,
                         "Xuc_xac_3": d3,
                         "id": "Wanglin"
                     })
-                    print("✅ Gửi API thành công")
+                    print("✅ Đã gửi API")
                 except Exception as e:
                     print("❌ Gửi API lỗi:", e)
 
-def on_error(ws, error):
-    print(f"❌ Lỗi WebSocket: {error}")
-
-def on_close(ws, close_status_code, close_msg):
-    print(f"🔌 Đã ngắt kết nối: {close_status_code} - {close_msg}")
-
 def on_open(ws):
-    print("✅ WebSocket kết nối thành công")
+    print("✅ WebSocket kết nối")
     for msg in messages_to_send:
         ws.send(json.dumps(msg))
         time.sleep(1)
+
+def on_error(ws, error):
+    print("❌ WebSocket lỗi:", error)
+
+def on_close(ws, code, msg):
+    print(f"🔌 Mất kết nối: {code} - {msg}")
 
 def run_websocket():
     header = [
@@ -80,13 +80,13 @@ def run_websocket():
         try:
             ws = websocket.WebSocketApp(
                 "wss://websocket.atpman.net/websocket",
+                on_open=on_open,
                 on_message=on_message,
                 on_error=on_error,
                 on_close=on_close,
-                on_open=on_open,
                 header=header
             )
             ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            print(f"🔁 Reconnect WebSocket: {e}")
+            print("🔁 Thử lại kết nối:", e)
             time.sleep(5)
