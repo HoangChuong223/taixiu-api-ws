@@ -4,11 +4,9 @@ import time
 import ssl
 import requests
 
-# === BIẾN TOÀN CỤC ===
 id_phien = None
 API_URL = "https://taixiu-api-ws.onrender.com/api/taixiu"
 
-# === DANH SÁCH TIN NHẮN GỬI ===
 messages_to_send = [
     [1, "MiniGame", "saoban", "ere2234", {
         "info": "{\"ipAddress\":\"125.235.239.187\",\"userId\":\"2ef4335a-6562-4c64-b012-46ef83a25800\",\"username\":\"S8_saoban\",\"timestamp\":1749643344994,\"refreshToken\":\"e790adfa529e42639552261c7a7d206b.51b6327dccb94fe1b4a96040d5ded732\"}",
@@ -56,7 +54,7 @@ def on_message(ws, message):
                         "Xuc_xac_3": d3,
                         "id": "Wanglin"
                     })
-                    print("✅ Đã gửi kết quả về API")
+                    print("✅ Gửi API thành công")
                 except Exception as e:
                     print("❌ Gửi API lỗi:", e)
 
@@ -78,7 +76,6 @@ def run_websocket():
         "Origin: https://789club.sx",
         "User-Agent: Mozilla/5.0"
     ]
-
     while True:
         try:
             ws = websocket.WebSocketApp(
@@ -91,5 +88,5 @@ def run_websocket():
             )
             ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}, ping_interval=10, ping_timeout=5)
         except Exception as e:
-            print(f"🔁 Mất kết nối WebSocket: {e}")
+            print(f"🔁 Reconnect WebSocket: {e}")
             time.sleep(5)
